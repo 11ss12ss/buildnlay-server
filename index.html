@@ -713,6 +713,8 @@
         let gameLoop = null;
         let currentGame = null;
         let nextCreationId = 1;
+        let users = [];
+        let UGC_SUBMISSIONS = [];
 
         const QUOTES = [
             "The only way to win is to never stop building.",
@@ -722,41 +724,84 @@
             "Don't just chase the score, chase the story."
         ];
 
-        // Load data from memory or initialize with defaults
-        function loadData() {
-            const savedUsers = JSON.parse(sessionStorage.getItem('bnp_users'));
-            const savedSubmissions = JSON.parse(sessionStorage.getItem('bnp_submissions'));
-            const savedCreationId = sessionStorage.getItem('bnp_creation_id');
-            
-            if (savedUsers) {
-                return {
-                    users: savedUsers,
-                    submissions: savedSubmissions || [],
-                    creationId: savedCreationId ? parseInt(savedCreationId) : 1
-                };
-            }
-            
-            // Default users if no saved data
-            return {
-                users: [
+        // Load data from cloud storage
+        async function loadData() {
+            try {
+                // Load all user keys
+                const userListResult = await window.storage.list('user:', true);
+                const loadedUsers = [];
+                
+                if (userListResult && userListResult.keys && userListResult.keys.length > 0) {
+                    for (const key of userListResult.keys) {
+                        const result = await window.storage.get(key, true);
+                        if (result && result.value) {
+                            loadedUsers.push(JSON.parse(result.value));
+                        }
+                    }
+                }
+                
+                // If no users exist, create default accounts
+                if (loadedUsers.length === 0) {
+                    const defaultUsers = [
+                        { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
+                        { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
+                    ];
+                    
+                    for (const user of defaultUsers) {
+                        await window.storage.set('user:' + user.username, JSON.stringify(user), true);
+                        loadedUsers.push(user);
+                    }
+                }
+                
+                users = loadedUsers;
+                
+                // Load UGC submissions
+                try {
+                    const submissionsResult = await window.storage.get('ugc_submissions', true);
+                    if (submissionsResult && submissionsResult.value) {
+                        const data = JSON.parse(submissionsResult.value);
+                        UGC_SUBMISSIONS.push(...data.submissions);
+                        nextCreationId = data.nextId || 1;
+                    }
+                } catch (e) {
+                    // No submissions yet
+                    UGC_SUBMISSIONS.length = 0;
+                    nextCreationId = 1;
+                }
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // Fallback to default users
+                users = [
                     { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
                     { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
-                ],
-                submissions: [],
-                creationId: 1
-            };
+                ];
+            }
         }
 
-        function saveData() {
-            sessionStorage.setItem('bnp_users', JSON.stringify(users));
-            sessionStorage.setItem('bnp_submissions', JSON.stringify(UGC_SUBMISSIONS));
-            sessionStorage.setItem('bnp_creation_id', nextCreationId.toString());
+        async function saveUser(user) {
+            try {
+                await window.storage.set('user:' + user.username, JSON.stringify(user), true);
+            } catch (error) {
+                console.error('Error saving user:', error);
+            }
         }
 
-        const dataLoad = loadData();
-        const users = dataLoad.users;
-        const UGC_SUBMISSIONS = dataLoad.submissions;
-        nextCreationId = dataLoad.creationId; 
+        async function saveSubmissions() {
+            try {
+                await window.storage.set('ugc_submissions', JSON.stringify({
+                    submissions: UGC_SUBMISSIONS,
+                    nextId: nextCreationId
+                }), true);
+            } catch (error) {
+                console.error('Error saving submissions:', error);
+            }
+        }
+
+        // Initialize on page load
+        loadData().then(() => {
+            console.log('Data loaded successfully');
+        }); 
 
         const GAMES = [
             { id: 1, name: 'Cosmic Runner', desc: 'Dodge asteroids and collect stars!', icon: '🚀', difficulty: 'Easy', reward: 100, xp: 50, color: '#667eea' },
@@ -882,6 +927,7 @@
                     firstLogin: true 
                 };
                 users.push(newUser);
+                saveUser(newUser); // Save to cloud (no await needed, fire and forget)
                 
                 document.getElementById('username').value = username; 
                 document.getElementById('password').value = '';
@@ -1064,6 +1110,7 @@
             
             currentUser.coins -= item.price;
             currentUser.inventory.push(itemId);
+            saveUser(currentUser); // Save to cloud
             updateUI();
             renderShop();
             showNotification('✅ Purchased ' + item.name + '!');
@@ -1117,6 +1164,7 @@
             };
 
             UGC_SUBMISSIONS.push(submission);
+            saveSubmissions(); // Save to cloud
             showNotification('✅ Idea submitted! Thank you.');
             
             document.getElementById('creationTitle').value = '';
@@ -1230,6 +1278,7 @@
                 showNotification('✅ Unbanned: ' + username);
             }
             
+            saveUser(user); // Save to cloud
             renderAdmin(); 
             
             if (user === currentUser) { 
@@ -1253,6 +1302,7 @@
                 showNotification('✅ Warn cleared: ' + username);
             }
             
+            saveUser(user); // Save to cloud
             renderAdmin(); 
             
             if (user === currentUser) {
@@ -1352,6 +1402,7 @@
                 }
 
                 updateUI();
+                saveUser(currentUser); // Save to cloud
                 showNotification(`🎉 Game Over! +${finalCoins} Coins, +${finalXP} XP`);
             } else if (score > 0 && currentUser.banned) {
                 showNotification('Game ended. No rewards earned while banned.');
