@@ -733,15 +733,20 @@
                 
                 if (userListResult && userListResult.keys && userListResult.keys.length > 0) {
                     for (const key of userListResult.keys) {
-                        const result = await window.storage.get(key, true);
-                        if (result && result.value) {
-                            loadedUsers.push(JSON.parse(result.value));
+                        try {
+                            const result = await window.storage.get(key, true);
+                            if (result && result.value) {
+                                loadedUsers.push(JSON.parse(result.value));
+                            }
+                        } catch (e) {
+                            console.log('Could not load user from key:', key);
                         }
                     }
                 }
                 
                 // If no users exist, create default accounts
                 if (loadedUsers.length === 0) {
+                    console.log('No users found, creating defaults...');
                     const defaultUsers = [
                         { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
                         { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
@@ -751,20 +756,25 @@
                         await window.storage.set('user:' + user.username, JSON.stringify(user), true);
                         loadedUsers.push(user);
                     }
+                    console.log('Default users created');
                 }
                 
-                users = loadedUsers;
+                users.length = 0;
+                users.push(...loadedUsers);
+                console.log('Loaded ' + users.length + ' users from storage');
                 
                 // Load UGC submissions
                 try {
                     const submissionsResult = await window.storage.get('ugc_submissions', true);
                     if (submissionsResult && submissionsResult.value) {
                         const data = JSON.parse(submissionsResult.value);
+                        UGC_SUBMISSIONS.length = 0;
                         UGC_SUBMISSIONS.push(...data.submissions);
                         nextCreationId = data.nextId || 1;
+                        console.log('Loaded ' + UGC_SUBMISSIONS.length + ' submissions');
                     }
                 } catch (e) {
-                    // No submissions yet
+                    console.log('No submissions found, starting fresh');
                     UGC_SUBMISSIONS.length = 0;
                     nextCreationId = 1;
                 }
@@ -772,35 +782,52 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 // Fallback to default users
-                users = [
+                users.length = 0;
+                users.push(
                     { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
                     { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
-                ];
+                );
             }
         }
 
         async function saveUser(user) {
             try {
-                await window.storage.set('user:' + user.username, JSON.stringify(user), true);
+                const result = await window.storage.set('user:' + user.username, JSON.stringify(user), true);
+                if (result) {
+                    console.log('User saved:', user.username);
+                } else {
+                    console.error('Failed to save user:', user.username);
+                }
+                return result;
             } catch (error) {
-                console.error('Error saving user:', error);
+                console.error('Error saving user:', user.username, error);
+                return null;
             }
         }
 
         async function saveSubmissions() {
             try {
-                await window.storage.set('ugc_submissions', JSON.stringify({
+                const result = await window.storage.set('ugc_submissions', JSON.stringify({
                     submissions: UGC_SUBMISSIONS,
                     nextId: nextCreationId
                 }), true);
+                if (result) {
+                    console.log('Submissions saved');
+                } else {
+                    console.error('Failed to save submissions');
+                }
+                return result;
             } catch (error) {
                 console.error('Error saving submissions:', error);
+                return null;
             }
         }
 
         // Initialize on page load
         loadData().then(() => {
-            console.log('Data loaded successfully');
+            console.log('BuildNPlay data loaded and ready!');
+        }).catch(err => {
+            console.error('Failed to load data:', err);
         }); 
 
         const GAMES = [
