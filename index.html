@@ -722,12 +722,41 @@
             "Don't just chase the score, chase the story."
         ];
 
-        const users = [
-            { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
-            { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
-        ];
+        // Load data from memory or initialize with defaults
+        function loadData() {
+            const savedUsers = JSON.parse(sessionStorage.getItem('bnp_users'));
+            const savedSubmissions = JSON.parse(sessionStorage.getItem('bnp_submissions'));
+            const savedCreationId = sessionStorage.getItem('bnp_creation_id');
+            
+            if (savedUsers) {
+                return {
+                    users: savedUsers,
+                    submissions: savedSubmissions || [],
+                    creationId: savedCreationId ? parseInt(savedCreationId) : 1
+                };
+            }
+            
+            // Default users if no saved data
+            return {
+                users: [
+                    { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
+                    { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
+                ],
+                submissions: [],
+                creationId: 1
+            };
+        }
 
-        const UGC_SUBMISSIONS = []; 
+        function saveData() {
+            sessionStorage.setItem('bnp_users', JSON.stringify(users));
+            sessionStorage.setItem('bnp_submissions', JSON.stringify(UGC_SUBMISSIONS));
+            sessionStorage.setItem('bnp_creation_id', nextCreationId.toString());
+        }
+
+        const dataLoad = loadData();
+        const users = dataLoad.users;
+        const UGC_SUBMISSIONS = dataLoad.submissions;
+        nextCreationId = dataLoad.creationId; 
 
         const GAMES = [
             { id: 1, name: 'Cosmic Runner', desc: 'Dodge asteroids and collect stars!', icon: '🚀', difficulty: 'Easy', reward: 100, xp: 50, color: '#667eea' },
