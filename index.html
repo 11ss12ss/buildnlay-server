@@ -39,6 +39,28 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* --- Moderation Banner Style --- */
+        #moderationBanner {
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .ban-banner {
+            background: linear-gradient(90deg, #8b0000, #b22222);
+            border: 2px solid #ff0000;
+        }
+
+        .warn-banner {
+            background: linear-gradient(90deg, #a0522d, #ff8c00);
+            border: 2px solid #ffd700;
+        }
 
         /* --- Auth Screen Styles --- */
         .auth-screen {
@@ -186,7 +208,7 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 14px;
-            width: auto; /* Override general button width */
+            width: auto;
         }
         
         .nav-btn:hover {
@@ -488,6 +510,7 @@
     </style>
 </head>
 <body>
+    <!-- Login Success Overlay -->
     <div id="loginSuccessScreen" class="auth-screen">
         <h2>Welcome Back!</h2>
         <p id="welcomeQuote">A legend never quits.</p>
@@ -499,11 +522,11 @@
             <h2 id="authTitle">🎮 Welcome Back!</h2>
             <p id="authSubtitle" style="color: #aaa; margin-bottom: 30px;">Login to continue</p>
             <div id="errorMsg" class="error hidden"></div>
-            <input type="text" id="username" placeholder="Username" value="Username here!">
+            <input type="text" id="username" placeholder="Username">
             <div id="emailField" class="hidden">
                 <input type="email" id="email" placeholder="Email">
             </div>
-            <input type="password" id="password" placeholder="Password" value="TEST">
+            <input type="password" id="password" placeholder="Password">
             <div id="confirmField" class="hidden">
                 <input type="password" id="confirmPassword" placeholder="Confirm Password">
             </div>
@@ -533,6 +556,9 @@
                 <button class="nav-btn" onclick="logout()">Logout</button>
             </div>
         </nav>
+        
+        <!-- MODERATION STATUS BANNER -->
+        <div id="moderationBanner" class="hidden"></div> 
 
         <div class="container">
             <div id="homePage" class="page">
@@ -540,10 +566,12 @@
                     <h1 class="page-title">Welcome back, <span id="welcomeName"></span>! 🚀</h1>
                 </div>
 
+                <!-- Quote of the Day -->
                 <div class="quote-box">
                     <p id="quoteOfTheDay">"The only way to win is to never stop building." - BnP</p>
                 </div>
 
+                <!-- User Stats Summary -->
                 <div class="stats-summary">
                     <div class="stat-item">
                         <div class="stat-value" id="statsLevel">1</div>
@@ -559,6 +587,7 @@
                     </div>
                 </div>
 
+                <!-- XP Progress Bar -->
                 <div class="xp-container">
                     <div class="xp-text">
                         <span>XP: <span id="statsXP">0</span></span>
@@ -654,6 +683,7 @@
         </div>
     </div>
 
+    <!-- Game Modal -->
     <div id="gameModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -737,9 +767,16 @@
         }
 
         function handleAuth() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
             const errorMsg = document.getElementById('errorMsg');
+
+            // Validate inputs
+            if (!username || !password) {
+                errorMsg.textContent = 'Username and password are required';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
 
             if (isLogin) {
                 const user = users.find(u => u.username === username && u.password === password);
@@ -748,15 +785,18 @@
                     errorMsg.classList.remove('hidden');
                     return;
                 }
+                
+                // CRUCIAL: Instant Ban Check on Login
                 if (user.banned) {
-                    let banMessage = 'Account banned.';
+                    let banMessage = '❌ Account BANNED. You cannot log in.';
                     if (user.banReason) {
-                        banMessage += ' Reason: ' + user.banReason;
+                        banMessage += ` Reason: ${user.banReason}`;
                     }
                     errorMsg.textContent = banMessage;
                     errorMsg.classList.remove('hidden');
                     return;
                 }
+
                 currentUser = user;
                 
                 // Show Charm Login Success Screen
@@ -773,9 +813,19 @@
                 setTimeout(showMainApp, 500);
                 
             } else {
-                const email = document.getElementById('email').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
+                const email = document.getElementById('email').value.trim();
+                const confirmPassword = document.getElementById('confirmPassword').value.trim();
                 
+                if (!email) {
+                    errorMsg.textContent = 'Email is required';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+                if (password.length < 6) {
+                    errorMsg.textContent = 'Password must be at least 6 characters';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
                 if (password !== confirmPassword) {
                     errorMsg.textContent = 'Passwords do not match';
                     errorMsg.classList.remove('hidden');
@@ -815,6 +865,28 @@
             }
         }
 
+        /**
+         * Checks the user's banned or warned status and displays a persistent banner.
+         */
+        function checkModerationStatus() {
+            const banner = document.getElementById('moderationBanner');
+            banner.classList.add('hidden');
+            banner.className = ''; 
+
+            if (!currentUser) return;
+
+            if (currentUser.banned) {
+                const reasonText = currentUser.banReason ? `Reason: ${currentUser.banReason}` : 'No reason provided.';
+                banner.textContent = `❌ Account BANNED. You cannot play or access restricted content. (${reasonText})`;
+                banner.classList.add('ban-banner');
+                banner.classList.remove('hidden');
+            } else if (currentUser.warned) {
+                banner.textContent = '⚠️ ACCOUNT WARNING: You have a warning. Please adhere to community guidelines.';
+                banner.classList.add('warn-banner');
+                banner.classList.remove('hidden');
+            }
+        }
+
         function showMainApp() {
             document.getElementById('mainApp').classList.remove('hidden');
             document.getElementById('usernameDisplay').textContent = currentUser.username;
@@ -833,6 +905,7 @@
             document.getElementById('quoteOfTheDay').textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}" - BnP`;
             
             updateUI();
+            checkModerationStatus();
             renderGames();
             
             // Ensure first page shown is 'home'
@@ -859,6 +932,8 @@
             document.getElementById('statsXP').textContent = currentUser.xp;
             document.getElementById('xpNeeded').textContent = xpNeededForLevel.toLocaleString();
             document.getElementById('xpProgressBar').style.width = xpPercent + '%';
+
+            checkModerationStatus();
         }
 
         // --- Navigation and Page Functions ---
@@ -919,7 +994,6 @@
                     renderAdminUgc();
                 } else {
                     showNotification('🚫 Access Denied. Admins only.');
-                    // Fallback to home if they try to access admin directly
                     const homeButton = document.querySelector('.nav-buttons .nav-btn:first-child');
                     if (homeButton) showPage('home', homeButton);
                 }
@@ -948,6 +1022,11 @@
         }
 
         function buyItem(itemId) {
+            if (currentUser.banned) {
+                showNotification(`🚫 Purchase failed: Your account is banned. Reason: ${currentUser.banReason || 'N/A'}`);
+                return;
+            }
+
             const item = SHOP.find(function(i) { return i.id === itemId; });
             if (!item || currentUser.inventory.includes(itemId) || currentUser.coins < item.price) {
                 showNotification('🚫 Cannot complete purchase. Not enough coins or already owned.');
@@ -985,6 +1064,11 @@
         
         // --- UGC/Creations Functions ---
         function submitCreation() {
+            if (currentUser.banned) {
+                showNotification(`🚫 Submission failed: Your account is banned. Reason: ${currentUser.banReason || 'N/A'}`);
+                return;
+            }
+
             const title = document.getElementById('creationTitle').value.trim();
             const type = document.getElementById('creationType').value;
             const desc = document.getElementById('creationDesc').value.trim();
@@ -1051,7 +1135,6 @@
             `).join('');
         }
 
-
         // --- Leaderboard Functions ---
         function renderLeaderboard() {
             const tbody = document.getElementById('leaderboardBody');
@@ -1071,7 +1154,6 @@
                 tbody.appendChild(tr);
             });
         }
-
 
         // --- Admin Functions ---
         function renderAdmin() {
@@ -1111,7 +1193,7 @@
                 }
                 user.banned = true;
                 user.banReason = reason.trim();
-                user.warned = false; 
+                user.warned = false;
                 showNotification('🚫 Banned: ' + username + ' (Reason: ' + user.banReason + ')');
             } else {
                 user.banned = false;
@@ -1120,8 +1202,13 @@
             }
             
             renderAdmin(); 
-            if (user === currentUser && user.banned) {
-                logout(); 
+            
+            if (user === currentUser) { 
+                checkModerationStatus(); 
+                if (user.banned) {
+                    showNotification('🚫 You have been banned by another admin. Logging out...');
+                    setTimeout(logout, 1500); 
+                }
             }
         }
         
@@ -1138,14 +1225,20 @@
             }
             
             renderAdmin(); 
+            
+            if (user === currentUser) {
+                checkModerationStatus();
+            }
         }
 
         function logout() {
             currentUser = null;
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('authScreen').classList.remove('hidden');
-            document.getElementById('username').value = 'admin'; 
-            document.getElementById('password').value = 'admin123'; 
+            
+            document.getElementById('username').value = ''; 
+            document.getElementById('password').value = ''; 
+            
             if (!isLogin) toggleAuth();
             showNotification('👋 Logged out successfully. See you soon!');
         }
@@ -1169,7 +1262,7 @@
 
         function startGame(gameId) {
             if (currentUser.banned) {
-                showNotification('🚫 Cannot start game: Your account is banned.');
+                showNotification(`🚫 Cannot start game: Your account is banned. Reason: ${currentUser.banReason || 'N/A'}`);
                 return;
             }
 
@@ -1193,21 +1286,26 @@
             document.getElementById('gameCoinsDisplay').textContent = gameCoins;
 
             if (gameLoop) clearInterval(gameLoop);
-            gameLoop = setInterval(updateGame, 1000 / 60); // 60 FPS
+            gameLoop = setInterval(updateGame, 1000 / 60);
             
             document.addEventListener('keydown', handleKeyPress);
             document.addEventListener('keyup', handleKeyRelease);
         }
 
         function closeGame() {
-            clearInterval(gameLoop);
-            gameLoop = null;
+            if (gameLoop) {
+                clearInterval(gameLoop);
+                gameLoop = null;
+            }
+            
             document.getElementById('gameModal').classList.remove('active');
             
             document.removeEventListener('keydown', handleKeyPress);
             document.removeEventListener('keyup', handleKeyRelease);
             
-            if (score > 0) {
+            keys = {};
+            
+            if (score > 0 && !currentUser.banned) {
                 const finalCoins = Math.floor(score / 100) * currentGame.reward + gameCoins;
                 const finalXP = Math.floor(score / 100) * currentGame.xp;
                 
@@ -1216,7 +1314,6 @@
                 currentUser.stats.gamesPlayed++;
                 currentUser.stats.totalScore += score;
 
-                // Level Up Logic
                 let xpNeededForLevel = currentUser.level * 500;
                 while (currentUser.xp >= xpNeededForLevel) {
                     currentUser.xp -= xpNeededForLevel;
@@ -1227,6 +1324,8 @@
 
                 updateUI();
                 showNotification(`🎉 Game Over! +${finalCoins} Coins, +${finalXP} XP`);
+            } else if (score > 0 && currentUser.banned) {
+                showNotification('Game ended. No rewards earned while banned.');
             } else {
                 showNotification('Game session ended.');
             }
@@ -1243,10 +1342,15 @@
 
         function updateGame() {
             if (currentUser.banned) {
-                clearInterval(gameLoop);
-                gameLoop = null;
-                showNotification('🚫 Game ended: Your account was banned.');
-                setTimeout(closeGame, 500);
+                if (gameLoop) {
+                    clearInterval(gameLoop);
+                    gameLoop = null;
+                }
+                document.removeEventListener('keydown', handleKeyPress);
+                document.removeEventListener('keyup', handleKeyRelease);
+                document.getElementById('gameModal').classList.remove('active');
+                showNotification('🚫 Game ended: Your account was banned by an admin.');
+                checkModerationStatus();
                 return;
             }
 
