@@ -724,110 +724,158 @@
             "Don't just chase the score, chase the story."
         ];
 
-        // Load data from cloud storage
+        // Check if cloud storage is available, otherwise use localStorage
+        const USE_CLOUD = typeof window.storage !== 'undefined';
+        
+        // Load data from storage
         async function loadData() {
-            try {
-                // Load all user keys
-                const userListResult = await window.storage.list('user:', true);
-                const loadedUsers = [];
-                
-                if (userListResult && userListResult.keys && userListResult.keys.length > 0) {
-                    for (const key of userListResult.keys) {
-                        try {
-                            const result = await window.storage.get(key, true);
-                            if (result && result.value) {
-                                loadedUsers.push(JSON.parse(result.value));
+            if (USE_CLOUD) {
+                // Try cloud storage
+                try {
+                    const userListResult = await window.storage.list('user:', true);
+                    const loadedUsers = [];
+                    
+                    if (userListResult && userListResult.keys && userListResult.keys.length > 0) {
+                        for (const key of userListResult.keys) {
+                            try {
+                                const result = await window.storage.get(key, true);
+                                if (result && result.value) {
+                                    loadedUsers.push(JSON.parse(result.value));
+                                }
+                            } catch (e) {
+                                console.log('Could not load user from key:', key);
                             }
-                        } catch (e) {
-                            console.log('Could not load user from key:', key);
                         }
                     }
-                }
-                
-                // If no users exist, create default accounts
-                if (loadedUsers.length === 0) {
-                    console.log('No users found, creating defaults...');
-                    const defaultUsers = [
-                        { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
-                        { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
-                    ];
                     
-                    for (const user of defaultUsers) {
-                        await window.storage.set('user:' + user.username, JSON.stringify(user), true);
-                        loadedUsers.push(user);
+                    if (loadedUsers.length === 0) {
+                        console.log('No users found, creating defaults...');
+                        const defaultUsers = [
+                            { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
+                            { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
+                        ];
+                        
+                        for (const user of defaultUsers) {
+                            await window.storage.set('user:' + user.username, JSON.stringify(user), true);
+                            loadedUsers.push(user);
+                        }
                     }
-                    console.log('Default users created');
-                }
-                
-                users.length = 0;
-                users.push(...loadedUsers);
-                console.log('Loaded ' + users.length + ' users from storage');
-                
-                // Load UGC submissions
-                try {
-                    const submissionsResult = await window.storage.get('ugc_submissions', true);
-                    if (submissionsResult && submissionsResult.value) {
-                        const data = JSON.parse(submissionsResult.value);
+                    
+                    users.length = 0;
+                    users.push(...loadedUsers);
+                    
+                    try {
+                        const submissionsResult = await window.storage.get('ugc_submissions', true);
+                        if (submissionsResult && submissionsResult.value) {
+                            const data = JSON.parse(submissionsResult.value);
+                            UGC_SUBMISSIONS.length = 0;
+                            UGC_SUBMISSIONS.push(...data.submissions);
+                            nextCreationId = data.nextId || 1;
+                        }
+                    } catch (e) {
                         UGC_SUBMISSIONS.length = 0;
-                        UGC_SUBMISSIONS.push(...data.submissions);
-                        nextCreationId = data.nextId || 1;
-                        console.log('Loaded ' + UGC_SUBMISSIONS.length + ' submissions');
+                        nextCreationId = 1;
                     }
-                } catch (e) {
-                    console.log('No submissions found, starting fresh');
-                    UGC_SUBMISSIONS.length = 0;
-                    nextCreationId = 1;
+                    
+                    console.log('✅ CLOUD STORAGE: Loaded ' + users.length + ' users');
+                    
+                } catch (error) {
+                    console.error('Cloud storage failed:', error);
+                    loadFromLocalStorage();
                 }
-                
-            } catch (error) {
-                console.error('Error loading data:', error);
-                // Fallback to default users
-                users.length = 0;
-                users.push(
-                    { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
-                    { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
-                );
+            } else {
+                // Use localStorage
+                loadFromLocalStorage();
+            }
+        }
+
+        function loadFromLocalStorage() {
+            console.log('📦 USING LOCALSTORAGE (GitHub Server Compatible)');
+            const savedData = localStorage.getItem('bnp_all_data');
+            
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    users.length = 0;
+                    users.push(...data.users);
+                    UGC_SUBMISSIONS.length = 0;
+                    UGC_SUBMISSIONS.push(...(data.submissions || []));
+                    nextCreationId = data.nextId || 1;
+                    console.log('✅ LOADED FROM LOCALSTORAGE: ' + users.length + ' users');
+                } catch (e) {
+                    console.error('Failed to parse localStorage:', e);
+                    createDefaultUsers();
+                }
+            } else {
+                console.log('No saved data, creating defaults...');
+                createDefaultUsers();
+            }
+        }
+
+        function createDefaultUsers() {
+            users.length = 0;
+            users.push(
+                { username: 'admin', password: 'admin123', email: 'admin@bp.com', role: 'admin', level: 10, xp: 1200, coins: 50000, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 25, totalScore: 15000 }, firstLogin: false },
+                { username: 'player1', password: 'pass123', email: 'p1@bp.com', role: 'user', level: 3, xp: 450, coins: 2500, inventory: [], banned: false, banReason: null, warned: false, stats: { gamesPlayed: 5, totalScore: 1200 }, firstLogin: false }
+            );
+            saveToLocalStorage();
+        }
+
+        function saveToLocalStorage() {
+            try {
+                const data = {
+                    users: users,
+                    submissions: UGC_SUBMISSIONS,
+                    nextId: nextCreationId
+                };
+                localStorage.setItem('bnp_all_data', JSON.stringify(data));
+                console.log('💾 SAVED TO LOCALSTORAGE: ' + users.length + ' users');
+                return true;
+            } catch (e) {
+                console.error('❌ LOCALSTORAGE SAVE FAILED:', e);
+                return false;
             }
         }
 
         async function saveUser(user) {
-            try {
-                const result = await window.storage.set('user:' + user.username, JSON.stringify(user), true);
-                if (result) {
-                    console.log('User saved:', user.username);
-                } else {
-                    console.error('Failed to save user:', user.username);
+            if (USE_CLOUD) {
+                try {
+                    const result = await window.storage.set('user:' + user.username, JSON.stringify(user), true);
+                    if (result) {
+                        console.log('☁️ User saved to cloud:', user.username);
+                    }
+                    return result;
+                } catch (error) {
+                    console.error('Cloud save failed, using localStorage');
+                    return saveToLocalStorage();
                 }
-                return result;
-            } catch (error) {
-                console.error('Error saving user:', user.username, error);
-                return null;
+            } else {
+                return saveToLocalStorage();
             }
         }
 
         async function saveSubmissions() {
-            try {
-                const result = await window.storage.set('ugc_submissions', JSON.stringify({
-                    submissions: UGC_SUBMISSIONS,
-                    nextId: nextCreationId
-                }), true);
-                if (result) {
-                    console.log('Submissions saved');
-                } else {
-                    console.error('Failed to save submissions');
+            if (USE_CLOUD) {
+                try {
+                    const result = await window.storage.set('ugc_submissions', JSON.stringify({
+                        submissions: UGC_SUBMISSIONS,
+                        nextId: nextCreationId
+                    }), true);
+                    return result;
+                } catch (error) {
+                    return saveToLocalStorage();
                 }
-                return result;
-            } catch (error) {
-                console.error('Error saving submissions:', error);
-                return null;
+            } else {
+                return saveToLocalStorage();
             }
         }
 
         // Initialize on page load
         loadData().then(() => {
-            console.log('BuildNPlay data loaded and ready!');
+            console.log('🎮 BuildNPlay Ready!');
         }).catch(err => {
-            console.error('Failed to load data:', err);
+            console.error('Load failed:', err);
+            loadFromLocalStorage();
         }); 
 
         const GAMES = [
@@ -954,7 +1002,15 @@
                     firstLogin: true 
                 };
                 users.push(newUser);
-                saveUser(newUser); // Save to cloud (no await needed, fire and forget)
+                
+                // Save user with feedback
+                saveUser(newUser).then(result => {
+                    if (result) {
+                        console.log('New account created and saved:', username);
+                    } else {
+                        console.error('Account created but save failed');
+                    }
+                });
                 
                 document.getElementById('username').value = username; 
                 document.getElementById('password').value = '';
@@ -1441,6 +1497,16 @@
         let keys = {};
         function handleKeyPress(e) {
             keys[e.key] = true;
+            
+            // Debug key: Press '8' to open console info
+            if (e.key === '8') {
+                alert('🎮 BuildNPlay Debug Info\n\n' +
+                      'Storage Type: ' + (USE_CLOUD ? 'Cloud Storage' : 'LocalStorage') + '\n' +
+                      'Total Users: ' + users.length + '\n' +
+                      'Current User: ' + (currentUser ? currentUser.username : 'Not logged in') + '\n' +
+                      'UGC Submissions: ' + UGC_SUBMISSIONS.length + '\n\n' +
+                      'User List:\n' + users.map(u => '- ' + u.username + ' (Lvl ' + u.level + ')').join('\n'));
+            }
         }
 
         function handleKeyRelease(e) {
