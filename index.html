@@ -188,7 +188,17 @@
 <body>
 
     <script>
-        const EMAILJS_CONFIG = { PUBLIC_KEY: "YOUR_KEY", SERVICE_ID: "YOUR_SERVICE", TEMPLATE_ID: "YOUR_TEMPLATE" };
+        const EMAILJS_CONFIG = { PUBLIC_KEY: "YOUR_KEY", SERVICE_ID: "YOUR_SERVICE", TEMPLATE_ID: "Hello %DISPLAY_NAME%,
+
+Follow this link to verify your email address.
+
+https://buildnplay-f3809.firebaseapp.com/__/auth/action?mode=action&oobCode=code
+
+If you didn’t ask to verify this address, you can ignore this email.
+
+Thanks,
+
+Your %APP_NAME% team" };
     </script>
 
     <div id="loadingScreen" style="position:fixed; inset:0; background:#050505; z-index:9999; display:flex; align-items:center; justify-content:center;">
