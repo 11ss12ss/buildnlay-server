@@ -1,848 +1,487 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BuildNPlay | Titan v36 (Config)</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-
-    <style>
-        /* --- TITAN THEME SYSTEM --- */
-        :root {
-            --bg-body: #050505;
-            --bg-sidebar: #0b0b10;
-            --bg-card: #14141e;
-            --primary: #6C5DD3;
-            --accent: #00ffaa;
-            --danger: #ff003c;
-            --warn: #ffa502;
-            --gold: #FFD700;
-            --text-main: #ffffff;
-            --text-muted: #808191;
-            --border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* --- GLOBAL RESETS --- */
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Outfit', sans-serif; outline: none; }
-        
-        body {
-            background-color: var(--bg-body);
-            background-image: radial-gradient(circle at 15% 50%, rgba(108, 93, 211, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(0, 255, 170, 0.05), transparent 25%);
-            color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-        }
-
-        h1, h2, h3, h4, button, .logo, .stat-value, .game-title {
-            font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-
-        .hidden { display: none !important; }
-        .flex { display: flex; align-items: center; }
-        .gap-10 { gap: 10px; }
-        .between { justify-content: space-between; }
-
-        /* --- SIDEBAR --- */
-        aside { width: 280px; background: var(--bg-sidebar); height: 100vh; padding: 30px; display: flex; flex-direction: column; border-right: var(--border); z-index: 100; }
-        .brand { font-size: 28px; font-weight: 800; font-family:'Rajdhani'; color: var(--text-main); margin-bottom: 50px; display: flex; align-items: center; gap: 10px; }
-        .brand span { color: var(--accent); }
-        .nav-menu { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-        .nav-item { padding: 16px 20px; border-radius: 14px; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease; font-weight: 600; font-size: 15px; display: flex; gap: 15px; align-items: center; }
-        .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-main); }
-        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 20px -5px rgba(108, 93, 211, 0.4); }
-        .nav-item.admin { color: var(--danger); }
-
-        /* --- MAIN --- */
-        main { flex: 1; padding: 40px 50px; overflow-y: auto; position: relative; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        .header-title { font-size: 36px; font-weight: 800; font-family:'Rajdhani'; }
-        .profile-pill { background: var(--bg-card); border: var(--border); padding: 8px 20px; border-radius: 50px; display: flex; align-items: center; gap: 20px; }
-        .coin-box { color: var(--gold); font-weight: 700; font-size: 18px; font-family: 'Rajdhani'; }
-
-        /* --- UI ELEMENTS --- */
-        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 50px; }
-        .stat-card { background: var(--bg-card); padding: 25px; border-radius: 16px; border: var(--border); position: relative; overflow: hidden; }
-        .stat-card::after { content:''; position:absolute; bottom:0; left:0; width:100%; height:4px; background: linear-gradient(90deg, var(--primary), var(--accent)); }
-        .stat-val { font-size: 42px; font-weight: 800; color: white; line-height: 1; margin-bottom: 5px; }
-        .stat-lbl { color: var(--text-muted); font-size: 13px; font-weight: 600; letter-spacing: 1px; }
-
-        .arcade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
-        .arcade-card { background: var(--bg-card); border-radius: 20px; padding: 25px; transition: 0.3s; border: var(--border); cursor: pointer; border-top: 4px solid var(--primary); display: flex; flex-direction: column; justify-content: space-between; min-height: 240px; position: relative; }
-        .arcade-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5); }
-        .card-icon { font-size: 40px; margin-bottom: 15px; }
-        .card-title { font-size: 20px; font-weight: 800; font-family:'Rajdhani'; margin-bottom: 5px; color: white; }
-        .card-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
-        .card-author { font-size: 10px; color: #666; position: absolute; top: 10px; right: 10px; }
-        .play-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s; font-family:'Rajdhani'; margin-top: auto; }
-        .play-btn:hover { background: #5a4bbf; }
-
-        .styled-input { width: 100%; padding: 15px; background: rgba(0,0,0,0.3); border: var(--border); border-radius: 10px; color: white; outline: none; transition: 0.3s; }
-        .styled-input:focus { border-color: var(--primary); }
-        
-        /* --- MP & CHAT --- */
-        .mp-container { display: grid; grid-template-columns: 1fr 320px; gap: 20px; height: 600px; }
-        #mpCanvas { width: 100%; height: 100%; background: #050505; border-radius: 20px; border: var(--border); cursor: crosshair; }
-        .chat-box { background: var(--bg-card); border-radius: 20px; border: var(--border); display: flex; flex-direction: column; overflow: hidden; }
-        .chat-header { padding: 20px; background: rgba(0,0,0,0.2); font-weight: 700; border-bottom: var(--border); }
-        .chat-list { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .chat-bubble { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 10px; font-size: 13px; position: relative; word-wrap: break-word; }
-        .chat-bubble strong { color: var(--primary); display: block; font-size: 11px; margin-bottom: 2px; }
-        .chat-bubble.error { border: 1px solid var(--danger); background: rgba(255,0,0,0.1); }
-        
-        /* --- MODALS --- */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 5000; display: none; align-items: center; justify-content: center; }
-        .modal-box { background: #15151a; border: 1px solid #333; padding: 30px; border-radius: 24px; max-width: 600px; width: 90%; position: relative; }
-        #authLayer { position: fixed; inset: 0; background: #050505; z-index: 9000; display: flex; align-items: center; justify-content: center; }
-        .login-card { width: 450px; background: #111116; border: var(--border); padding: 50px; border-radius: 30px; text-align: center; box-shadow: 0 0 100px rgba(108, 93, 211, 0.2); }
-        
-        .action-btn { padding: 12px 30px; background: #333; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
-        .action-btn.danger { background: var(--danger); }
-        .action-btn.warn { background: var(--warn); color:black; }
-        
-        .input-group { display: flex; gap: 15px; margin-top: 15px; }
-        .settings-panel { background: var(--bg-card); padding: 40px; border-radius: 20px; border: var(--border); margin-bottom: 20px; }
-        .studio-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        .studio-label { font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; display: block; }
-        
-        .status-badge { background: #333; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #aaa; margin-left: 10px; }
-        .status-online { color: var(--accent); background: rgba(0, 255, 170, 0.1); }
-        .status-offline { color: var(--warn); background: rgba(255, 165, 0, 0.1); }
-
-        /* --- SETTINGS TOGGLES --- */
-        .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .toggle-switch { position: relative; width: 50px; height: 26px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #333; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(24px); }
-
-        /* --- NEW ADMIN PANEL --- */
-        .admin-dashboard { font-family: 'Share Tech Mono', monospace; }
-        .admin-stats { display: flex; gap: 20px; margin-bottom: 30px; }
-        .adm-stat { flex: 1; background: rgba(0,0,0,0.5); border: 1px solid #333; padding: 15px; border-left: 4px solid #555; }
-        .adm-stat h4 { margin: 0; color: #777; font-size: 12px; }
-        .adm-stat .num { font-size: 28px; font-weight: bold; color: white; }
-        .adm-stat.bad .num { color: var(--danger); }
-        .adm-stat.warn .num { color: var(--warn); }
-        
-        .admin-search { margin-bottom: 20px; display: flex; gap: 10px; }
-        .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        
-        .user-block { 
-            background: #111; border: 1px solid #333; padding: 15px; border-radius: 8px; position: relative; transition: 0.2s;
-            display: flex; flex-direction: column; gap: 10px; 
-        }
-        .user-block:hover { background: #161616; border-color: #555; transform: translateY(-2px); }
-        
-        .user-block.banned { border-color: var(--danger); box-shadow: 0 0 10px rgba(255,0,60,0.1); opacity: 0.7; }
-        .user-block.banned::after { content: 'TERMINATED'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); color: var(--danger); font-size: 24px; font-weight: 900; border: 4px solid var(--danger); padding: 5px 10px; opacity: 0.8; pointer-events: none; }
-        .user-block.warned { border-color: var(--warn); animation: pulseWarn 2s infinite; }
-        @keyframes pulseWarn { 0% { box-shadow: 0 0 0 var(--warn); } 50% { box-shadow: 0 0 15px var(--warn); } 100% { box-shadow: 0 0 0 var(--warn); } }
-        
-        .u-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 10px; }
-        .u-name { font-weight: bold; font-size: 16px; color: white; }
-        .u-role { font-size: 10px; background: #333; padding: 2px 6px; border-radius: 4px; }
-        .u-info { font-size: 11px; color: #666; display: flex; flex-direction: column; gap: 2px; }
-        .u-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: auto; }
-        .btn-tiny { font-size: 10px; padding: 8px 0; border: none; font-weight: 900; cursor: pointer; font-family: 'Share Tech Mono'; transition: 0.2s; }
-        .btn-tiny:hover { filter: brightness(1.2); }
-
-        /* --- JUDGMENT SYSTEM --- */
-        @keyframes strobeRed { 0% { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; background: #100; } 50% { border-color: #500; box-shadow: 0 0 0 black; background: #000; } 100% { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; background: #100; } }
-        @keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
-
-        #banOverlay { background: #000 !important; z-index: 99999; }
-        .ban-terminal {
-            width: 700px; padding: 60px; border: 5px solid red; font-family: 'Share Tech Mono', monospace;
-            background: #050000; color: red; text-align: center; position: relative;
-            animation: strobeRed 0.8s infinite;
-        }
-        .ban-terminal h1 { font-size: 64px; margin: 0; letter-spacing: 5px; animation: glitch 0.2s infinite; text-shadow: 4px 4px 0px #300; }
-        .ban-sub { font-size: 24px; background: red; color: black; font-weight: bold; padding: 10px; margin: 20px 0; }
-        .ban-info { text-align: left; border: 1px dashed #500; padding: 20px; margin-top: 20px; color: #a00; font-size: 14px; }
-        .ban-info span { color: white; }
-
-        .warn-box {
-            width: 500px; border: 4px solid var(--warn); background: #1a1a00;
-            font-family: 'Share Tech Mono', monospace; text-align: center;
-            box-shadow: 0 0 50px rgba(255, 165, 0, 0.3);
-        }
-        .warn-stripe { height: 30px; background: repeating-linear-gradient(45deg, #000, #000 10px, var(--warn) 10px, var(--warn) 20px); }
-        .warn-title { font-size: 32px; color: var(--warn); margin: 20px 0; font-weight: bold; }
-        .warn-body { color: white; font-size: 16px; margin-bottom: 20px; line-height: 1.5; }
-    </style>
-</head>
-<body>
-
-    <script>
-        const EMAILJS_CONFIG = { PUBLIC_KEY: "YOUR_KEY", SERVICE_ID: "YOUR_SERVICE", TEMPLATE_ID: "Hello %DISPLAY_NAME%,
-
-Follow this link to verify your email address.
-
-https://buildnplay-f3809.firebaseapp.com/__/auth/action?mode=action&oobCode=code
-
-If you didn’t ask to verify this address, you can ignore this email.
-
-Thanks,
-
-Your %APP_NAME% team" };
-    </script>
-
-    <div id="loadingScreen" style="position:fixed; inset:0; background:#050505; z-index:9999; display:flex; align-items:center; justify-content:center;">
-        <h1 style="color:var(--primary);">CONNECTING...</h1>
-    </div>
-
-    <div id="authLayer">
-        <div class="login-card">
-            <h1 style="font-size:42px; margin-bottom:10px;">BUILD<span style="color:var(--primary)">N</span>PLAY</h1>
-            <p style="color:var(--text-muted);">Titan Edition v36 (Config)</p>
-            <div id="dbStatus" style="font-size:12px; margin-bottom:30px; color:var(--accent); font-weight:bold; cursor:pointer;" onclick="retryDB()">DB: Checking...</div>
-            <div id="authForm" onkeypress="if(event.key==='Enter') login()">
-                <input type="text" id="uName" class="styled-input" placeholder="Username" style="width:100%; margin-bottom:15px;">
-                <input type="password" id="pWord" class="styled-input" placeholder="Password" style="width:100%; margin-bottom:25px;">
-                <button onclick="login()" class="play-btn">LOGIN</button>
-                <p onclick="toggleAuth()" style="margin-top:20px; font-size:13px; color:#666; cursor:pointer; text-decoration:underline;">Create Account</p>
-                <p onclick="localStorage.clear(); location.reload()" style="margin-top:20px; color:var(--danger); font-size:10px; cursor:pointer;">⚠ Factory Reset Data</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="app" class="hidden" style="display:flex; width:100%;">
-        <aside>
-            <div class="brand">BUILD<span>N</span>PLAY</div>
-            <div class="nav-menu">
-                <div class="nav-item active" onclick="nav('home', this)"><span>🏠</span> Dashboard</div>
-                <div class="nav-item" onclick="nav('studio', this)"><span>🛠️</span> Game Studio</div>
-                <div class="nav-item" onclick="nav('multiplayer', this)"><span>🌍</span> Multiplayer Hub</div>
-                <div class="nav-item" onclick="nav('settings', this)"><span>⚙️</span> Settings</div>
-                <div class="nav-item admin hidden" id="adminLink" onclick="nav('admin', this)"><span>🛡️</span> Admin Panel</div>
-            </div>
-            <div style="margin-top:auto;">
-                <div class="nav-item" onclick="location.reload()" style="color:var(--danger)"><span>🛑</span> Logout</div>
-            </div>
-        </aside>
-
-        <main>
-            <header>
-                <div class="header-title" id="pageTitle">DASHBOARD</div>
-                <div class="profile-pill">
-                    <div class="coin-box">💰 <span id="uiCoins">0</span></div>
-                    <div style="text-align:right;">
-                        <div style="font-weight:700;" id="uiUser">Guest</div>
-                        <div style="font-size:12px; color:var(--text-muted);">LVL <span id="uiLevel">1</span></div>
-                    </div>
-                </div>
-            </header>
-
-            <div id="pg-home" class="page-view">
-                <div class="stats-row">
-                    <div class="stat-card"><div class="stat-val" id="stLvl">1</div><div class="stat-lbl">Level</div></div>
-                    <div class="stat-card"><div class="stat-val" id="stGames">0</div><div class="stat-lbl">Matches</div></div>
-                    <div class="stat-card"><div class="stat-val" id="stScore">0</div><div class="stat-lbl">High Score</div></div>
-                </div>
-                <h3 style="margin-bottom:20px; color:var(--text-muted);">ARCADE ZONE</h3>
-                <div class="arcade-grid" id="officialList"></div>
-                <h3 style="margin:40px 0 20px 0; color:var(--text-muted);">COMMUNITY GAMES</h3>
-                <div class="arcade-grid" id="communityList"></div>
-            </div>
-
-            <div id="pg-studio" class="page-view hidden">
-                <div class="settings-panel">
-                    <h3 style="margin-bottom:20px;">CREATE NEW GAME</h3>
-                    <div class="input-group"><input id="ugcTitle" class="styled-input" placeholder="Game Title"></div>
-                    <div class="studio-controls">
-                        <div><span class="studio-label">GAME ENGINE</span><select id="ugcType" class="styled-input"><option value="dodger">Space Dodger</option><option value="shooter">Crystal Shooter</option><option value="jumper">Platformer</option></select></div>
-                        <div><span class="studio-label">PLAYER COLOR</span><input type="color" id="ugcColor" value="#00ffaa" style="width:100%; height:45px; border:none; background:transparent;"></div>
-                        <div><span class="studio-label">GAME SPEED</span><select id="ugcSpeed" class="styled-input"><option value="1">Normal Speed</option><option value="1.5">Fast Speed</option><option value="2">Insane Speed</option></select></div>
-                    </div>
-                    <div class="input-group"><textarea id="ugcDesc" class="styled-input" placeholder="Short description..." rows="3"></textarea></div>
-                    <button onclick="createGame()" class="play-btn" style="width:auto; padding:12px 40px; margin-top:20px;">PUBLISH GAME</button>
-                </div>
-                <h3 style="margin-top:30px; color:var(--text-muted);">YOUR PUBLISHED GAMES</h3>
-                <div id="myGamesList" class="arcade-grid" style="margin-top:15px;"></div>
-            </div>
-
-            <div id="pg-multiplayer" class="page-view hidden">
-                <div class="header-title" style="font-size:20px; margin-bottom:10px;">GLOBAL HUB <span id="mpStatusBadge" class="status-badge">Connecting...</span></div>
-                <div class="mp-container">
-                    <div class="game-canvas-container">
-                        <canvas id="mpCanvas" width="900" height="600" tabindex="1"></canvas>
-                        <div style="position:absolute; top:15px; left:15px; background:rgba(0,0,0,0.6); padding:5px 10px; border-radius:5px; font-size:12px;">WASD to Move</div>
-                    </div>
-                    <div class="chat-box">
-                        <div class="chat-header">GLOBAL CHAT</div>
-                        <div class="chat-list" id="chatList"></div>
-                        <div class="chat-input-row">
-                            <input id="chatMsg" class="styled-input" placeholder="Message..." onkeypress="if(event.key==='Enter') sendChat()">
-                            <button onclick="sendChat()" class="action-btn primary" style="padding:0 15px;">➤</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="pg-settings" class="page-view hidden">
-                <div class="settings-panel">
-                    <h3 style="margin-bottom:20px;">PROFILE</h3>
-                    <div class="input-group">
-                        <span class="studio-label" style="min-width:100px; display:flex; align-items:center;">PUBLIC BIO</span>
-                        <input id="setBio" class="styled-input" placeholder="Set your status...">
-                    </div>
-                </div>
-                <div class="settings-panel" style="margin-top:20px;">
-                    <h3 style="margin-bottom:15px;">PERFORMANCE</h3>
-                    <div class="toggle-row">
-                        <span>High Quality Effects (Particles)</span>
-                        <label class="toggle-switch"><input type="checkbox" id="setParticles" checked><span class="slider"></span></label>
-                    </div>
-                </div>
-                <div class="settings-panel" style="margin-top:20px; border-color:var(--danger);">
-                    <h3 style="color:var(--danger); margin-bottom:10px;">DANGER ZONE</h3>
-                    <button onclick="localStorage.clear(); location.reload();" class="action-btn danger" style="width:100%;">FACTORY RESET DATA</button>
-                </div>
-                <button onclick="saveSettings()" class="play-btn" style="margin-top:20px;">SAVE CHANGES</button>
-            </div>
-
-            <div id="pg-admin" class="page-view hidden">
-                 <div class="admin-dashboard">
-                     <div class="admin-stats">
-                         <div class="adm-stat"><h4>TOTAL SUBJECTS</h4><div class="num" id="stat-total">0</div></div>
-                         <div class="adm-stat warn"><h4>ACTIVE WARNINGS</h4><div class="num" id="stat-warn">0</div></div>
-                         <div class="adm-stat bad"><h4>TERMINATED</h4><div class="num" id="stat-ban">0</div></div>
-                     </div>
-                     <div class="admin-search">
-                         <input id="adminSearch" class="styled-input" placeholder="FILTER SUBJECT..." onkeyup="renderAdmin()">
-                         <button onclick="renderAdmin()" class="action-btn">REFRESH</button>
-                     </div>
-                     <div id="adminUserGrid" class="user-grid"></div>
+diff --git a/index.html b/index.html
+index 46194e59f9fad1d394cd7e181cda655860efd64f..4024187e295ef21dc2b6ae955afb17472d118265 100644
+--- a/index.html
++++ b/index.html
+@@ -314,51 +314,56 @@ Your %APP_NAME% team" };
                  </div>
-            </div>
-        </main>
-    </div>
-
-    <div id="gameOverlay" class="modal-overlay">
-        <div class="modal-box" style="width:850px; max-width:95%;">
-            <div class="between flex" style="margin-bottom:15px;">
-                <h2 id="goTitle">GAME</h2>
-                <div>SCORE: <span id="goScore" style="color:var(--gold)">0</span> HP: <span id="goHp" style="color:var(--danger)">3</span></div>
-            </div>
-            <canvas id="spCanvas" width="800" height="450" style="width:100%; background:#000; border-radius:12px; border:2px solid #333;"></canvas>
-            <button onclick="stopGame()" class="action-btn danger" style="margin-top:15px; width:100%;">EXIT</button>
-        </div>
-    </div>
-
-    <div id="adminActionModal" class="modal-overlay">
-        <div class="modal-box" style="width:400px; border-color:var(--warn);">
-            <h2 id="actTitle" style="color:var(--warn);">ACTION</h2>
-            <p style="color:#ccc; margin:15px 0;">Target: <b id="actTarget"></b></p>
-            <input id="actReason" class="styled-input" placeholder="Reason (Visible to User)...">
-            <div class="flex gap-10" style="margin-top:20px;">
-                <button onclick="confirmAction()" class="play-btn" style="background:var(--warn); color:black;">EXECUTE</button>
-                <button onclick="document.getElementById('adminActionModal').style.display='none'" class="play-btn" style="background:#333;">CANCEL</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="banOverlay" class="modal-overlay">
-        <div class="ban-terminal">
-            <h1>TERMINATED</h1>
-            <div class="ban-sub">CONNECTION SEVERED</div>
-            <div class="ban-info">
-                > STATUS: <span style="color:red; font-weight:bold;">PERMANENT BAN</span><br>
-                > REASON: <span id="banReason">VIOLATION OF TOS</span><br>
-                > USER_ID: <span id="banUid">UNKNOWN</span><br>
-                > IP_ADDR: <span id="banIp">LOGGED (192.XXX.XXX.X)</span><br>
-                > HWID: <span style="color:red;">FLAGGED</span>
-            </div>
-            <p style="margin-top:30px; font-size:12px; opacity:0.6;">DO NOT ATTEMPT TO BYPASS. FURTHER ACTION WILL BE TAKEN.</p>
-        </div>
-    </div>
-
-    <div id="warnOverlay" class="modal-overlay">
-        <div class="warn-box">
-            <div class="warn-stripe"></div>
-            <div style="padding:40px;">
-                <div class="warn-title">⚠ OFFICIAL WARNING ⚠</div>
-                <div class="warn-body">
-                    Your account has been flagged for misconduct.<br><br>
-                    REASON: <span id="warnReason" style="color:var(--warn); font-weight:bold;">General</span><br>
-                    STRIKE: <b style="color:red">1 / 3</b>
-                </div>
-                <button id="warnBtn" onclick="ackWarn()" class="action-btn warn" style="width:100%; font-weight:900;">ACKNOWLEDGE (5s)</button>
-            </div>
-            <div class="warn-stripe"></div>
-        </div>
-    </div>
-
-    <script>
-        // --- STATE ---
-        let db=null, auth=null, dbMode='firebase';
-        let user=null, users=[], mpLoop=null, spLoop=null, mpListener=null, chatListener=null;
-        let mpLocal={ x:400, y:300, color:'#00ffaa', lastSeen: Date.now() };
-        let otherPlayers = {}; 
-        let spState={ active:false, score:0, hp:3, type:'', player:{}, entities:[], particles:[] };
-        let loginMode=true;
-        let actTarget=null, actType=null, ugc=[];
-
-        const OFFICIAL_GAMES = [
-            {id:'1', name:'COSMIC RUN', type:'dodger', icon:'🚀', desc:'Dodge asteroids!', color:'#6C5DD3', speed:1},
-            {id:'2', name:'CRYSTAL BLAST', type:'shooter', icon:'💎', desc:'Shoot crystals!', color:'#00ffaa', speed:1},
-            {id:'3', name:'CYBER JUMP', type:'jumper', icon:'🏃', desc:'Jump spikes!', color:'#ffa502', speed:1}
-        ];
-
-        // --- INIT ---
-        window.onload = async () => {
-            try {
-                if(typeof firebase !== 'undefined') {
-                    const cfg = { apiKey: "AIzaSyAi8u9eTZd7tCEAlYuRKLFPpvXWxCGOyas", authDomain: "buildnplay-f3809.firebaseapp.com", projectId: "buildnplay-f3809" };
-                    if(!firebase.apps.length) firebase.initializeApp(cfg);
-                    db = firebase.firestore();
-                    auth = firebase.auth();
-                    
-                    try {
-                        await auth.signInAnonymously();
-                        console.log("SECURE CONNECTION ESTABLISHED");
-                    } catch(authErr) {
-                        console.error("AUTH FAILED:", authErr);
-                        alert("NOTE: Multiplayer disabled. Enable 'Anonymous' in Firebase Auth Console.");
-                        dbMode = 'local';
-                    }
-                }
-            } catch(e) { console.log("Init Error:", e); dbMode = 'local'; }
-
-            updateDBStatus();
-            await loadAllData();
-            document.getElementById('loadingScreen').style.display='none';
-            document.getElementById('authLayer').style.display='flex';
-            renderGameList();
-        };
-
-        function retryDB() { location.reload(); }
-
-        function updateDBStatus() {
-            const el = document.getElementById('dbStatus');
-            if(dbMode === 'local') {
-                el.innerText = "DB: Offline (Local Mode)";
-                el.style.color = "var(--warn)";
-            } else {
-                el.innerText = "DB: Online (Secure)";
-                el.style.color = "var(--accent)";
-            }
-        }
-
-        // --- DATA & SYNC ---
-        async function loadAllData() {
-            const ls = localStorage.getItem('bnp_v36');
-            if(ls) { 
-                const d=JSON.parse(ls); 
-                users=d.users||[]; ugc=d.ugc||[]; 
-            }
-
-            if(dbMode === 'firebase' && db) {
-                try {
-                    db.collection('users').onSnapshot(s => { 
-                        users=[]; 
-                        s.forEach(d=>users.push(d.data())); 
-                        if(user) {
-                             const me = users.find(u => u.username === user.username);
-                             if(me) { user = me; checkStatus(); }
-                             if(user.role === 'admin' && !document.getElementById('pg-admin').classList.contains('hidden')) renderAdmin();
-                        }
-                    });
-                    db.collection('ugc').onSnapshot(s => { ugc=[]; s.forEach(d=>ugc.push({id:d.id, ...d.data()})); renderCommunityGames(); });
-                } catch(e) { dbMode = 'local'; updateDBStatus(); }
-            }
-            
-            if(!users.find(u=>u.username==='admin')) {
-                users.push({username:'admin',password:'123',role:'admin',coins:999999,email:'admin@titan.com',isVerified:true,inventory:[],stats:{gamesPlayed:0,totalScore:0}});
-                saveAll();
-            }
-            renderCommunityGames();
-        }
-
-        async function saveUser(u) {
-            if(dbMode === 'firebase' && db) {
-                try { await db.collection('users').doc(u.username).set(u); } 
-                catch(e){ dbMode = 'local'; updateDBStatus(); }
-            }
-            const i = users.findIndex(x=>x.username===u.username);
-            if(i>=0) users[i]=u; else users.push(u);
-            saveAll();
-        }
-
-        function saveAll() { localStorage.setItem('bnp_v36', JSON.stringify({users, ugc})); }
-
-        // --- AUTH ---
-        function toggleAuth() { loginMode=!loginMode; document.querySelector('.login-card h2').innerText=loginMode?"LOGIN":"REGISTER"; }
-        
-        async function login() {
-            const u = document.getElementById('uName').value.trim();
-            const p = document.getElementById('pWord').value.trim();
-            if(!u || !p) return alert("Fill fields");
-
-            if(loginMode) {
-                const found = users.find(x=>x.username===u && x.password===p);
-                if(!found) return alert("Invalid credentials or User not found");
-                user = found;
-            } else {
-                if(users.find(x=>x.username===u)) return alert("Taken");
-                const newUser = { username:u, password:p, role:'user', coins:500, level:1, inventory:[], settings:{particles:true, bio:''}, stats:{gamesPlayed:0, totalScore:0} };
-                if(dbMode==='firebase' && db) {
-                    try { await db.collection('users').doc(u).set(newUser); }
-                    catch(e) { dbMode='local'; updateDBStatus(); }
-                }
-                users.push(newUser); saveAll();
-                user = newUser;
-            }
-            
-            // Init Settings if old account
-            if(!user.settings) user.settings = { particles:true, bio:'' };
-
-            checkStatus(); 
-            if(user.banned) return; 
-
-            mpLocal.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
-            document.getElementById('authLayer').style.display='none';
-            document.getElementById('app').classList.remove('hidden');
-            updateHUD(); showPage('home');
-        }
-
-        // --- JUDGMENT SYSTEM ---
-        function checkStatus() {
-            if(!user) return;
-            if(user.banned) {
-                stopGame(); stopMP();
-                document.getElementById('app').classList.add('hidden');
-                document.getElementById('banOverlay').style.display='flex';
-                document.getElementById('banReason').innerText = (user.banReason || "TOS VIOLATION").toUpperCase();
-                document.getElementById('banUid').innerText = btoa(user.username).substring(0,16);
-                document.getElementById('banIp').innerText = `LOGGED (${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.XXX.XXX)`;
-            }
-            if(user.warned) {
-                const wBtn = document.getElementById('warnBtn');
-                wBtn.disabled = true;
-                let cd = 5;
-                wBtn.innerText = `ACKNOWLEDGE (${cd}s)`;
-                if(window.warnInterval) clearInterval(window.warnInterval);
-                window.warnInterval = setInterval(()=>{
-                    cd--;
-                    if(cd<=0) { clearInterval(window.warnInterval); wBtn.disabled=false; wBtn.innerText = "I UNDERSTAND"; }
-                    else { wBtn.innerText = `ACKNOWLEDGE (${cd}s)`; }
-                }, 1000);
-                document.getElementById('warnOverlay').style.display='flex';
-                document.getElementById('warnReason').innerText = user.warnReason || "General Misconduct";
-            }
-        }
-        
-        async function ackWarn() { user.warned = false; await saveUser(user); document.getElementById('warnOverlay').style.display='none'; }
-
-        // --- ADMIN ACTIONS ---
-        function openAdminAction(username, type) {
-            actTarget = username; actType = type;
-            const u = users.find(x => x.username === username);
-            if (type === 'ban' && u.banned) { u.banned = false; saveUser(u); return; }
-            if (type === 'warn' && u.warned) { u.warned = false; saveUser(u); return; }
-            document.getElementById('actTarget').innerText = username;
-            document.getElementById('actTitle').innerText = type.toUpperCase();
-            document.getElementById('adminActionModal').style.display = 'flex';
-        }
-
-        async function confirmAction() {
-            const r = document.getElementById('actReason').value || "No Reason Provided";
-            const u = users.find(x => x.username === actTarget);
-            if (actType === 'ban') { u.banned = true; u.banReason = r; }
-            if (actType === 'warn') { u.warned = true; u.warnReason = r; }
-            await saveUser(u); 
-            document.getElementById('adminActionModal').style.display = 'none';
-            document.getElementById('actReason').value = "";
-            renderAdmin();
-        }
-
-        // --- NAV ---
-        function nav(p, btn) {
-            document.querySelectorAll('.page-view').forEach(x=>x.classList.add('hidden'));
-            document.getElementById('pg-'+p).classList.remove('hidden');
-            if(btn) { document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); }
-            document.getElementById('pageTitle').innerText = p.toUpperCase();
-            if(p==='multiplayer') runMP(); else stopMP();
-            if(p==='settings') updateSettingsUI();
-            if(p==='studio') renderMyGames();
-            if(p==='admin') renderAdmin();
-        }
-        function showPage(p) { nav(p); } 
-        function updateHUD() {
-            document.getElementById('uiUser').innerText = user.username;
-            document.getElementById('uiCoins').innerText = user.coins;
-            if(user.role==='admin') document.getElementById('adminLink').classList.remove('hidden');
-        }
-
-        // --- SETTINGS LOGIC ---
-        function updateSettingsUI() {
-            if(!user.settings) user.settings = { particles:true, bio:'' };
-            document.getElementById('setBio').value = user.settings.bio || '';
-            document.getElementById('setParticles').checked = user.settings.particles !== false;
-        }
-        
-        async function saveSettings() {
-            user.settings.bio = document.getElementById('setBio').value;
-            user.settings.particles = document.getElementById('setParticles').checked;
-            await saveUser(user);
-            alert("Settings Saved!");
-        }
-
-        // --- GAMES ---
-        function renderGameList() { document.getElementById('officialList').innerHTML = OFFICIAL_GAMES.map(g=>mkCard(g)).join(''); }
-        function renderCommunityGames() { document.getElementById('communityList').innerHTML = ugc.map(g=>mkCard(g)).join(''); }
-        function mkCard(g) {
-            return `<div class="arcade-card">
-            <div class="card-icon" style="color:${g.color}">${g.icon||'🎮'}</div>
-            <div style="flex:1;">
-                <div class="card-title">${g.name||g.title}</div>
-                <div class="card-desc">${g.desc||g.type}</div>
-            </div>
-            <button onclick="playGame('${g.id}')" class="play-btn">PLAY</button>
-            ${g.author ? `<div class="card-author">by ${g.author}</div>` : ''}
-            </div>`;
-        }
-        
-        async function createGame() {
-            const t = document.getElementById('ugcTitle').value;
-            if(!t) return alert("Title required");
-            const g = { id: 'ugc_' + Date.now(), title: t, type: document.getElementById('ugcType').value, color: document.getElementById('ugcColor').value, speed: parseFloat(document.getElementById('ugcSpeed').value), desc: document.getElementById('ugcDesc').value, author: user.username };
-            if(dbMode === 'firebase' && db) { try { await db.collection('ugc').add(g); } catch(e) { ugc.push(g); saveAll(); } } 
-            else { ugc.push(g); saveAll(); }
-            alert("Published!"); nav('home'); renderCommunityGames();
-        }
-        
-        function renderMyGames() {
-            const myList = ugc.filter(g => g.author === user.username);
-            document.getElementById('myGamesList').innerHTML = myList.length ? myList.map(g => mkCard(g)).join('') : `<div style="color:#555;">No created games.</div>`;
-        }
-
-        // --- GAME ENGINE ---
-        function createExplosion(x, y, color) {
-            if(!spState.active) return;
-            if(user.settings && user.settings.particles === false) return; // SETTINGS CHECK
-            for(let i=0; i<12; i++) {
-                spState.particles.push({
-                    x: x, y: y, dx: (Math.random() - 0.5) * 10, dy: (Math.random() - 0.5) * 10,
-                    life: 1.0, color: color, size: Math.random() * 6 + 2
-                });
-            }
-        }
-
-        function playGame(id) {
-            let g = OFFICIAL_GAMES.find(x=>x.id == id) || ugc.find(x=>x.id == id);
-            if(!g) return alert("Game not found!");
-
-            document.getElementById('gameOverlay').style.display='flex';
-            document.getElementById('goTitle').innerText = g.name || g.title;
-            const cvs=document.getElementById('spCanvas'); const ctx=cvs.getContext('2d');
-            const spd = g.speed || 1;
-
-            spState = { active:true, type:g.type, score:0, hp:3, frame:0, entities:[], particles:[], player:{x:400,y:400,w:30,h:30,dy:0,dx:0,color:g.color, grounded:false} };
-            if(g.type==='jumper') spState.player.y=300;
-
-            window.onkeydown = (e) => {
-                const k=e.key.toLowerCase();
-                if([' ','w','a','s','d','arrowup','arrowleft','arrowright','arrowdown'].includes(k)) e.preventDefault();
-                if(k==='a'||k==='arrowleft') spState.player.dx = -5 * spd;
-                if(k==='d'||k==='arrowright') spState.player.dx = 5 * spd;
-                if(g.type==='jumper' && k===' ' && spState.player.grounded) { spState.player.dy=-15; spState.player.grounded=false; }
-                if(g.type==='shooter' && k===' ') spState.entities.push({type:'bullet', x:spState.player.x+10, y:spState.player.y, w:5, h:10, dy:-10, color:'white'});
-                if(g.type==='dodger') { if(k==='w') spState.player.dy=-5*spd; if(k==='s') spState.player.dy=5*spd; }
-            };
-            window.onkeyup = (e) => { spState.player.dx=0; if(g.type==='dodger') spState.player.dy=0; };
-
-            if(spLoop) clearInterval(spLoop);
-            spLoop = setInterval(() => {
-                if(!spState.active) return;
-                spState.frame++; ctx.fillStyle='#050505'; ctx.fillRect(0,0,800,450);
-                let p = spState.player;
-                if(g.type==='jumper') {
-                    p.dy += 0.6; p.y += p.dy;
-                    if(p.y > 380) { p.y=380; p.dy=0; p.grounded=true; }
-                } else { p.y += p.dy; }
-                p.x += p.dx;
-                if(p.x<0)p.x=0; if(p.x>770)p.x=770; if(p.y<0)p.y=0; if(p.y>420)p.y=420;
-
-                ctx.fillStyle=p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
-
-                for(let i = spState.particles.length - 1; i >= 0; i--) {
-                    let part = spState.particles[i];
-                    part.x += part.dx; part.y += part.dy; part.life -= 0.05;
-                    if(part.life <= 0) spState.particles.splice(i, 1);
-                    else { ctx.globalAlpha = part.life; ctx.fillStyle = part.color; ctx.fillRect(part.x, part.y, part.size, part.size); ctx.globalAlpha = 1.0; }
-                }
-
-                if(spState.frame % 50 === 0) {
-                    let type='bad'; if(g.type==='shooter' && Math.random()>0.5) type='target';
-                    let ex = Math.random()*770, ey = -30, edy = (3+Math.random()*3)*spd, edx=0;
-                    if(g.type==='jumper') { ex=800; ey=380; edx=-6*spd; edy=0; }
-                    spState.entities.push({type:type, x:ex, y:ey, w:30, h:30, dx:edx, dy:edy, color:type==='bad'?'#ff4757':'#00ffaa'});
-                }
-
-                for(let i=spState.entities.length-1; i>=0; i--) {
-                    let e = spState.entities[i];
-                    e.x += e.dx; e.y += e.dy;
-                    ctx.fillStyle=e.color; ctx.fillRect(e.x, e.y, e.w, e.h);
-
-                    if(rectCol(p,e) && e.type!=='bullet') {
-                         if(e.type==='bad') { spState.hp--; e.dead=true; createExplosion(e.x, e.y, '#ff4757'); } 
-                         else { spState.score+=50; e.dead=true; createExplosion(e.x, e.y, '#00ffaa'); }
-                    }
-                    if(e.type==='target' && !e.dead) {
-                        spState.entities.forEach(b => {
-                            if(b.type==='bullet' && !b.dead && rectCol(b,e)) { spState.score+=100; e.dead=true; b.dead=true; createExplosion(e.x, e.y, '#FFD700'); }
-                        });
-                    }
-                    if(e.y>500 || e.x<-50) { e.dead=true; if(g.type==='dodger') spState.score+=10; }
-                }
-                spState.entities = spState.entities.filter(e => !e.dead);
-                document.getElementById('goScore').innerText = spState.score;
-                document.getElementById('goHp').innerText = spState.hp;
-                if(spState.hp<=0) stopGame(true);
-            }, 1000/60);
-        }
-        function rectCol(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
-        function stopGame(died) {
-            spState.active=false; clearInterval(spLoop); document.getElementById('gameOverlay').style.display='none';
-            user.coins += Math.floor(spState.score/5); saveUser(user); updateHUD();
-        }
-
-        // --- CLOUD MULTIPLAYER ---
-        function runMP() {
-            const cvs=document.getElementById('mpCanvas'); const ctx=cvs.getContext('2d'); cvs.focus();
-            const badge = document.getElementById('mpStatusBadge');
-            
-            if(dbMode === 'local') {
-                badge.innerText = "Offline Mode"; badge.className = "status-badge status-offline";
-            } else {
-                badge.innerText = "Online (Cloud)"; badge.className = "status-badge status-online";
-                
-                mpListener = db.collection('mp_active').onSnapshot(s => {
-                    otherPlayers = {};
-                    const now = Date.now();
-                    s.forEach(doc => {
-                        const d = doc.data();
-                        if(d.username !== user.username && (now - d.lastSeen) < 10000) {
-                            otherPlayers[d.username] = d;
-                        }
-                    });
-                });
-
-                try {
-                    chatListener = db.collection('mp_chat').orderBy('timestamp', 'desc').limit(20).onSnapshot(s => {
-                        s.docChanges().reverse().forEach(change => {
-                            if(change.type === 'added') {
-                                const d = change.doc.data();
-                                if(d.username !== user.username) addChat(d.username, d.text, false);
-                            }
-                        });
-                    }, err => { addChat("SYSTEM", "Chat Error. Check Console.", false, true); });
-                } catch(e) {}
-            }
-
-            if(mpLoop) clearInterval(mpLoop);
-            window.addEventListener('keydown', handleMP);
-            
-            mpLoop = setInterval(()=>{
-                ctx.fillStyle='#050505'; ctx.fillRect(0,0,900,600);
-                for(let id in otherPlayers) {
-                    let p = otherPlayers[id];
-                    ctx.fillStyle = p.color || '#667eea'; 
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle='white'; ctx.fillText(id, p.x, p.y-15);
-                }
-                ctx.fillStyle = mpLocal.color; 
-                ctx.beginPath(); ctx.arc(mpLocal.x, mpLocal.y, 10, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle='white'; ctx.fillText("YOU", mpLocal.x, mpLocal.y-15);
-
-                if(dbMode === 'firebase' && db && (Date.now() - mpLocal.lastSeen > 200)) {
-                    mpLocal.lastSeen = Date.now();
-                    mpLocal.username = user.username;
-                    db.collection('mp_active').doc(user.username).set(mpLocal);
-                }
-            }, 50);
-        }
-
-        function stopMP() {
-            if(mpLoop) clearInterval(mpLoop);
-            if(mpListener) mpListener(); 
-            if(chatListener) chatListener();
-            window.removeEventListener('keydown', handleMP);
-            document.getElementById('mpStatusBadge').innerText = "Disconnected";
-        }
-
-        function handleMP(e) {
-            if(document.activeElement.id==='chatMsg') return;
-            const k=e.key.toLowerCase(); 
-            if(['w','a','s','d'].includes(k)) e.preventDefault();
-            if(k==='w') mpLocal.y-=10;
-            if(k==='s') mpLocal.y+=10;
-            if(k==='a') mpLocal.x-=10;
-            if(k==='d') mpLocal.x+=10;
-        }
-
-        function sendChat() {
-            const t=document.getElementById('chatMsg').value; if(!t)return;
-            addChat(user.username, t, true);
-            if(dbMode === 'firebase' && db) { db.collection('mp_chat').add({ username: user.username, text: t, timestamp: Date.now() }).catch(err => { addChat("SYSTEM", "Failed to send.", false, true); }); }
-            document.getElementById('chatMsg').value='';
-        }
-        
-        function addChat(u,t, isLocal, isError) { 
-            const cl = document.getElementById('chatList');
-            const div = document.createElement('div');
-            div.className = `chat-bubble ${isLocal?'local':''} ${isError?'error':''}`;
-            div.innerHTML = `<strong>${u}</strong>${t}`;
-            cl.appendChild(div);
-            cl.scrollTop = cl.scrollHeight;
-        }
-        
-        function renderAdmin() {
-            const q = document.getElementById('adminSearch').value.toLowerCase();
-            const filtered = users.filter(u => u.username.toLowerCase().includes(q));
-            
-            document.getElementById('stat-total').innerText = users.length;
-            document.getElementById('stat-warn').innerText = users.filter(u=>u.warned).length;
-            document.getElementById('stat-ban').innerText = users.filter(u=>u.banned).length;
-
-            const grid = document.getElementById('adminUserGrid');
-            grid.innerHTML = filtered.map(u => {
-                let statusClass = u.banned ? 'banned' : (u.warned ? 'warned' : '');
-                let statusText = u.banned ? 'TERMINATED' : (u.warned ? 'WARNING ISSUED' : 'ACTIVE');
-                let userBio = (u.settings && u.settings.bio) ? u.settings.bio.substring(0, 20) : "No Bio";
-                return `
-                <div class="user-block ${statusClass}">
-                    <div class="u-header">
-                        <div class="u-name">${u.username}</div>
-                        <div class="u-role">${u.role.toUpperCase()}</div>
-                    </div>
-                    <div class="u-info">
-                        <div style="color:var(--text-muted); font-style:italic;">"${userBio}"</div>
-                        <div>COINS: ${u.coins}</div>
-                        <div style="color:${u.banned?'var(--danger)':u.warned?'var(--warn)':'var(--accent)'}">${statusText}</div>
-                    </div>
-                    <div class="u-actions">
-                        <button class="btn-tiny" style="background:#222;" onclick="openAdminAction('${u.username}','warn')">${u.warned?'CLEAR WARN':'WARN'}</button>
-                        <button class="btn-tiny" style="background:var(--danger); color:black;" onclick="openAdminAction('${u.username}','ban')">${u.banned?'REVOKE BAN':'BAN'}</button>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-    </script>
-</body>
-</html>
+                 <button onclick="saveSettings()" class="play-btn" style="margin-top:20px;">SAVE CHANGES</button>
+             </div>
+ 
+             <div id="pg-admin" class="page-view hidden">
+                  <div class="admin-dashboard">
+                      <div class="admin-stats">
+                          <div class="adm-stat"><h4>TOTAL SUBJECTS</h4><div class="num" id="stat-total">0</div></div>
+                          <div class="adm-stat warn"><h4>ACTIVE WARNINGS</h4><div class="num" id="stat-warn">0</div></div>
+                          <div class="adm-stat bad"><h4>TERMINATED</h4><div class="num" id="stat-ban">0</div></div>
+                      </div>
+                      <div class="admin-search">
+                          <input id="adminSearch" class="styled-input" placeholder="FILTER SUBJECT..." onkeyup="renderAdmin()">
+                          <button onclick="renderAdmin()" class="action-btn">REFRESH</button>
+                      </div>
+                      <div id="adminUserGrid" class="user-grid"></div>
+                  </div>
+             </div>
+         </main>
+     </div>
+ 
+     <div id="gameOverlay" class="modal-overlay">
+         <div class="modal-box" style="width:850px; max-width:95%;">
+             <div class="between flex" style="margin-bottom:15px;">
+                 <h2 id="goTitle">GAME</h2>
+-                <div>SCORE: <span id="goScore" style="color:var(--gold)">0</span> HP: <span id="goHp" style="color:var(--danger)">3</span></div>
++                <div>
++                    SCORE: <span id="goScore" style="color:var(--gold)">0</span>
++                    HP: <span id="goHp" style="color:var(--danger)">3</span>
++                    WAVE: <span id="goWave" style="color:var(--accent)">1</span>
++                    x<span id="goMultiplier" style="color:#fff">1</span>
++                </div>
+             </div>
+             <canvas id="spCanvas" width="800" height="450" style="width:100%; background:#000; border-radius:12px; border:2px solid #333;"></canvas>
+             <button onclick="stopGame()" class="action-btn danger" style="margin-top:15px; width:100%;">EXIT</button>
+         </div>
+     </div>
+ 
+     <div id="adminActionModal" class="modal-overlay">
+         <div class="modal-box" style="width:400px; border-color:var(--warn);">
+             <h2 id="actTitle" style="color:var(--warn);">ACTION</h2>
+             <p style="color:#ccc; margin:15px 0;">Target: <b id="actTarget"></b></p>
+             <input id="actReason" class="styled-input" placeholder="Reason (Visible to User)...">
+             <div class="flex gap-10" style="margin-top:20px;">
+                 <button onclick="confirmAction()" class="play-btn" style="background:var(--warn); color:black;">EXECUTE</button>
+                 <button onclick="document.getElementById('adminActionModal').style.display='none'" class="play-btn" style="background:#333;">CANCEL</button>
+             </div>
+         </div>
+     </div>
+ 
+     <div id="banOverlay" class="modal-overlay">
+         <div class="ban-terminal">
+             <h1>TERMINATED</h1>
+             <div class="ban-sub">CONNECTION SEVERED</div>
+             <div class="ban-info">
+                 > STATUS: <span style="color:red; font-weight:bold;">PERMANENT BAN</span><br>
+                 > REASON: <span id="banReason">VIOLATION OF TOS</span><br>
+@@ -370,51 +375,51 @@ Your %APP_NAME% team" };
+         </div>
+     </div>
+ 
+     <div id="warnOverlay" class="modal-overlay">
+         <div class="warn-box">
+             <div class="warn-stripe"></div>
+             <div style="padding:40px;">
+                 <div class="warn-title">⚠ OFFICIAL WARNING ⚠</div>
+                 <div class="warn-body">
+                     Your account has been flagged for misconduct.<br><br>
+                     REASON: <span id="warnReason" style="color:var(--warn); font-weight:bold;">General</span><br>
+                     STRIKE: <b style="color:red">1 / 3</b>
+                 </div>
+                 <button id="warnBtn" onclick="ackWarn()" class="action-btn warn" style="width:100%; font-weight:900;">ACKNOWLEDGE (5s)</button>
+             </div>
+             <div class="warn-stripe"></div>
+         </div>
+     </div>
+ 
+     <script>
+         // --- STATE ---
+         let db=null, auth=null, dbMode='firebase';
+         let user=null, users=[], mpLoop=null, spLoop=null, mpListener=null, chatListener=null;
+         let mpLocal={ x:400, y:300, color:'#00ffaa', lastSeen: Date.now() };
+         let otherPlayers = {}; 
+-        let spState={ active:false, score:0, hp:3, type:'', player:{}, entities:[], particles:[] };
++        let spState={ active:false, score:0, hp:3, type:'', player:{}, entities:[], particles:[], combo:0, multiplier:1, wave:1, nextSpawn:50, stars:[], message:'', messageTimer:0, powerupTimer:0 };
+         let loginMode=true;
+         let actTarget=null, actType=null, ugc=[];
+ 
+         const OFFICIAL_GAMES = [
+             {id:'1', name:'COSMIC RUN', type:'dodger', icon:'🚀', desc:'Dodge asteroids!', color:'#6C5DD3', speed:1},
+             {id:'2', name:'CRYSTAL BLAST', type:'shooter', icon:'💎', desc:'Shoot crystals!', color:'#00ffaa', speed:1},
+             {id:'3', name:'CYBER JUMP', type:'jumper', icon:'🏃', desc:'Jump spikes!', color:'#ffa502', speed:1}
+         ];
+ 
+         // --- INIT ---
+         window.onload = async () => {
+             try {
+                 if(typeof firebase !== 'undefined') {
+                     const cfg = { apiKey: "AIzaSyAi8u9eTZd7tCEAlYuRKLFPpvXWxCGOyas", authDomain: "buildnplay-f3809.firebaseapp.com", projectId: "buildnplay-f3809" };
+                     if(!firebase.apps.length) firebase.initializeApp(cfg);
+                     db = firebase.firestore();
+                     auth = firebase.auth();
+                     
+                     try {
+                         await auth.signInAnonymously();
+                         console.log("SECURE CONNECTION ESTABLISHED");
+                     } catch(authErr) {
+                         console.error("AUTH FAILED:", authErr);
+                         alert("NOTE: Multiplayer disabled. Enable 'Anonymous' in Firebase Auth Console.");
+                         dbMode = 'local';
+@@ -463,51 +468,59 @@ Your %APP_NAME% team" };
+                     });
+                     db.collection('ugc').onSnapshot(s => { ugc=[]; s.forEach(d=>ugc.push({id:d.id, ...d.data()})); renderCommunityGames(); });
+                 } catch(e) { dbMode = 'local'; updateDBStatus(); }
+             }
+             
+             if(!users.find(u=>u.username==='admin')) {
+                 users.push({username:'admin',password:'123',role:'admin',coins:999999,email:'admin@titan.com',isVerified:true,inventory:[],stats:{gamesPlayed:0,totalScore:0}});
+                 saveAll();
+             }
+             renderCommunityGames();
+         }
+ 
+         async function saveUser(u) {
+             if(dbMode === 'firebase' && db) {
+                 try { await db.collection('users').doc(u.username).set(u); } 
+                 catch(e){ dbMode = 'local'; updateDBStatus(); }
+             }
+             const i = users.findIndex(x=>x.username===u.username);
+             if(i>=0) users[i]=u; else users.push(u);
+             saveAll();
+         }
+ 
+         function saveAll() { localStorage.setItem('bnp_v36', JSON.stringify({users, ugc})); }
+ 
+         // --- AUTH ---
+-        function toggleAuth() { loginMode=!loginMode; document.querySelector('.login-card h2').innerText=loginMode?"LOGIN":"REGISTER"; }
++        function toggleAuth() {
++            loginMode = !loginMode;
++            const title = document.querySelector('.login-card h1');
++            const submitBtn = document.querySelector('#authForm .play-btn');
++            const toggleLink = document.querySelector('#authForm p[onclick="toggleAuth()"]');
++            if(title) title.innerHTML = loginMode ? `BUILD<span style="color:var(--primary)">N</span>PLAY` : 'CREATE ACCOUNT';
++            if(submitBtn) submitBtn.innerText = loginMode ? 'LOGIN' : 'REGISTER';
++            if(toggleLink) toggleLink.innerText = loginMode ? 'Create Account' : 'Back to Login';
++        }
+         
+         async function login() {
+             const u = document.getElementById('uName').value.trim();
+             const p = document.getElementById('pWord').value.trim();
+             if(!u || !p) return alert("Fill fields");
+ 
+             if(loginMode) {
+                 const found = users.find(x=>x.username===u && x.password===p);
+                 if(!found) return alert("Invalid credentials or User not found");
+                 user = found;
+             } else {
+                 if(users.find(x=>x.username===u)) return alert("Taken");
+                 const newUser = { username:u, password:p, role:'user', coins:500, level:1, inventory:[], settings:{particles:true, bio:''}, stats:{gamesPlayed:0, totalScore:0} };
+                 if(dbMode==='firebase' && db) {
+                     try { await db.collection('users').doc(u).set(newUser); }
+                     catch(e) { dbMode='local'; updateDBStatus(); }
+                 }
+                 users.push(newUser); saveAll();
+                 user = newUser;
+             }
+             
+             // Init Settings if old account
+             if(!user.settings) user.settings = { particles:true, bio:'' };
+ 
+             checkStatus(); 
+@@ -610,137 +623,296 @@ Your %APP_NAME% team" };
+             <div class="card-icon" style="color:${g.color}">${g.icon||'🎮'}</div>
+             <div style="flex:1;">
+                 <div class="card-title">${g.name||g.title}</div>
+                 <div class="card-desc">${g.desc||g.type}</div>
+             </div>
+             <button onclick="playGame('${g.id}')" class="play-btn">PLAY</button>
+             ${g.author ? `<div class="card-author">by ${g.author}</div>` : ''}
+             </div>`;
+         }
+         
+         async function createGame() {
+             const t = document.getElementById('ugcTitle').value;
+             if(!t) return alert("Title required");
+             const g = { id: 'ugc_' + Date.now(), title: t, type: document.getElementById('ugcType').value, color: document.getElementById('ugcColor').value, speed: parseFloat(document.getElementById('ugcSpeed').value), desc: document.getElementById('ugcDesc').value, author: user.username };
+             if(dbMode === 'firebase' && db) { try { await db.collection('ugc').add(g); } catch(e) { ugc.push(g); saveAll(); } } 
+             else { ugc.push(g); saveAll(); }
+             alert("Published!"); nav('home'); renderCommunityGames();
+         }
+         
+         function renderMyGames() {
+             const myList = ugc.filter(g => g.author === user.username);
+             document.getElementById('myGamesList').innerHTML = myList.length ? myList.map(g => mkCard(g)).join('') : `<div style="color:#555;">No created games.</div>`;
+         }
+ 
+         // --- GAME ENGINE ---
+-        function createExplosion(x, y, color) {
++        function createExplosion(x, y, color, burst = 12) {
+             if(!spState.active) return;
+             if(user.settings && user.settings.particles === false) return; // SETTINGS CHECK
+-            for(let i=0; i<12; i++) {
++            for(let i=0; i<burst; i++) {
+                 spState.particles.push({
+                     x: x, y: y, dx: (Math.random() - 0.5) * 10, dy: (Math.random() - 0.5) * 10,
+                     life: 1.0, color: color, size: Math.random() * 6 + 2
+                 });
+             }
+         }
+ 
++        function setGameMessage(text, frames = 90) {
++            spState.message = text;
++            spState.messageTimer = frames;
++        }
++
++        function drawGameBackdrop(ctx) {
++            const grad = ctx.createLinearGradient(0, 0, 0, 450);
++            grad.addColorStop(0, '#040510');
++            grad.addColorStop(1, '#0b0b12');
++            ctx.fillStyle = grad;
++            ctx.fillRect(0, 0, 800, 450);
++
++            spState.stars.forEach(star => {
++                star.y += star.speed;
++                if(star.y > 460) { star.y = -10; star.x = Math.random() * 800; }
++                ctx.globalAlpha = star.alpha;
++                ctx.fillStyle = '#9ca3ff';
++                ctx.fillRect(star.x, star.y, star.size, star.size);
++            });
++            ctx.globalAlpha = 1;
++
++            if(spState.type === 'jumper') {
++                ctx.fillStyle = '#161622';
++                ctx.fillRect(0, 410, 800, 40);
++            }
++        }
++
++        function spawnGameEntity(game, spd) {
++            const waveScale = 1 + Math.min(spState.wave * 0.06, 0.6);
++            if(Math.random() < 0.12) {
++                spState.entities.push({
++                    type: 'pickup',
++                    x: Math.random() * 760,
++                    y: -20,
++                    w: 20,
++                    h: 20,
++                    dx: 0,
++                    dy: (2 + Math.random() * 2) * spd,
++                    color: '#FFD700'
++                });
++                return;
++            }
++
++            let type = 'bad';
++            if(game.type === 'shooter' && Math.random() > 0.45) type = 'target';
++
++            let ex = Math.random() * 770;
++            let ey = -30;
++            let edy = (3 + Math.random() * 3) * spd * waveScale;
++            let edx = (Math.random() - 0.5) * 1.5 * waveScale;
++
++            if(game.type === 'jumper') {
++                ex = 800;
++                ey = 380;
++                edx = -(5.5 + Math.random() * 2) * spd * waveScale;
++                edy = 0;
++            }
++
++            spState.entities.push({
++                type,
++                x: ex,
++                y: ey,
++                w: type === 'target' ? 24 : 30,
++                h: type === 'target' ? 24 : 30,
++                dx: edx,
++                dy: edy,
++                color: type === 'bad' ? '#ff4757' : '#00ffaa'
++            });
++        }
++
++        function applyPickup() {
++            const reward = 25 + Math.floor(10 * spState.multiplier);
++            spState.score += reward;
++            spState.hp = Math.min(5, spState.hp + 1);
++            spState.powerupTimer = 300;
++            setGameMessage(`POWER CORE +${reward}`, 70);
++        }
++
++        function drawGameHud(ctx) {
++            if(spState.messageTimer > 0) {
++                ctx.fillStyle = 'rgba(0,0,0,0.45)';
++                ctx.fillRect(260, 20, 280, 40);
++                ctx.fillStyle = '#FFD700';
++                ctx.font = 'bold 18px Rajdhani';
++                ctx.textAlign = 'center';
++                ctx.fillText(spState.message, 400, 46);
++                ctx.textAlign = 'left';
++                spState.messageTimer--;
++            }
++
++            if(spState.powerupTimer > 0) {
++                ctx.fillStyle = '#00ffaa';
++                ctx.fillRect(10, 10, (spState.powerupTimer / 300) * 160, 8);
++                spState.powerupTimer--;
++            }
++        }
++
+         function playGame(id) {
+             let g = OFFICIAL_GAMES.find(x=>x.id == id) || ugc.find(x=>x.id == id);
+             if(!g) return alert("Game not found!");
+ 
+             document.getElementById('gameOverlay').style.display='flex';
+             document.getElementById('goTitle').innerText = g.name || g.title;
+             const cvs=document.getElementById('spCanvas'); const ctx=cvs.getContext('2d');
+             const spd = g.speed || 1;
+ 
+-            spState = { active:true, type:g.type, score:0, hp:3, frame:0, entities:[], particles:[], player:{x:400,y:400,w:30,h:30,dy:0,dx:0,color:g.color, grounded:false} };
++            spState = {
++                active:true,
++                type:g.type,
++                score:0,
++                hp:3,
++                frame:0,
++                combo:0,
++                multiplier:1,
++                wave:1,
++                nextSpawn:50,
++                message:'',
++                messageTimer:0,
++                powerupTimer:0,
++                entities:[],
++                particles:[],
++                stars: Array.from({length:80}, ()=>({x:Math.random()*800, y:Math.random()*450, size:Math.random()*2+1, speed:Math.random()*1.2+0.3, alpha:Math.random()*0.8+0.2})),
++                player:{x:400,y:400,w:30,h:30,dy:0,dx:0,color:g.color, grounded:false}
++            };
+             if(g.type==='jumper') spState.player.y=300;
++            setGameMessage('SURVIVE THE WAVE', 90);
+ 
+             window.onkeydown = (e) => {
+                 const k=e.key.toLowerCase();
+                 if([' ','w','a','s','d','arrowup','arrowleft','arrowright','arrowdown'].includes(k)) e.preventDefault();
+                 if(k==='a'||k==='arrowleft') spState.player.dx = -5 * spd;
+                 if(k==='d'||k==='arrowright') spState.player.dx = 5 * spd;
+                 if(g.type==='jumper' && k===' ' && spState.player.grounded) { spState.player.dy=-15; spState.player.grounded=false; }
+                 if(g.type==='shooter' && k===' ') spState.entities.push({type:'bullet', x:spState.player.x+10, y:spState.player.y, w:5, h:10, dy:-10, color:'white'});
+                 if(g.type==='dodger') { if(k==='w') spState.player.dy=-5*spd; if(k==='s') spState.player.dy=5*spd; }
+             };
+             window.onkeyup = (e) => { spState.player.dx=0; if(g.type==='dodger') spState.player.dy=0; };
+ 
+             if(spLoop) clearInterval(spLoop);
+             spLoop = setInterval(() => {
+                 if(!spState.active) return;
+-                spState.frame++; ctx.fillStyle='#050505'; ctx.fillRect(0,0,800,450);
++                spState.frame++;
++                drawGameBackdrop(ctx);
+                 let p = spState.player;
+                 if(g.type==='jumper') {
+                     p.dy += 0.6; p.y += p.dy;
+                     if(p.y > 380) { p.y=380; p.dy=0; p.grounded=true; }
+                 } else { p.y += p.dy; }
+                 p.x += p.dx;
+                 if(p.x<0)p.x=0; if(p.x>770)p.x=770; if(p.y<0)p.y=0; if(p.y>420)p.y=420;
+ 
+                 ctx.fillStyle=p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
+ 
+                 for(let i = spState.particles.length - 1; i >= 0; i--) {
+                     let part = spState.particles[i];
+                     part.x += part.dx; part.y += part.dy; part.life -= 0.05;
+                     if(part.life <= 0) spState.particles.splice(i, 1);
+                     else { ctx.globalAlpha = part.life; ctx.fillStyle = part.color; ctx.fillRect(part.x, part.y, part.size, part.size); ctx.globalAlpha = 1.0; }
+                 }
+ 
+-                if(spState.frame % 50 === 0) {
+-                    let type='bad'; if(g.type==='shooter' && Math.random()>0.5) type='target';
+-                    let ex = Math.random()*770, ey = -30, edy = (3+Math.random()*3)*spd, edx=0;
+-                    if(g.type==='jumper') { ex=800; ey=380; edx=-6*spd; edy=0; }
+-                    spState.entities.push({type:type, x:ex, y:ey, w:30, h:30, dx:edx, dy:edy, color:type==='bad'?'#ff4757':'#00ffaa'});
++                if(spState.frame >= spState.nextSpawn) {
++                    spawnGameEntity(g, spd);
++                    spState.nextSpawn += Math.max(18, 52 - spState.wave * 2);
+                 }
+ 
+                 for(let i=spState.entities.length-1; i>=0; i--) {
+                     let e = spState.entities[i];
+                     e.x += e.dx; e.y += e.dy;
+-                    ctx.fillStyle=e.color; ctx.fillRect(e.x, e.y, e.w, e.h);
++                    ctx.fillStyle=e.color;
++                    if(e.type === 'pickup') {
++                        ctx.beginPath();
++                        ctx.arc(e.x + e.w / 2, e.y + e.h / 2, 11, 0, Math.PI * 2);
++                        ctx.fill();
++                    } else {
++                        ctx.fillRect(e.x, e.y, e.w, e.h);
++                    }
+ 
+                     if(rectCol(p,e) && e.type!=='bullet') {
+-                         if(e.type==='bad') { spState.hp--; e.dead=true; createExplosion(e.x, e.y, '#ff4757'); } 
+-                         else { spState.score+=50; e.dead=true; createExplosion(e.x, e.y, '#00ffaa'); }
++                         if(e.type==='bad') {
++                            spState.hp--;
++                            spState.combo = 0;
++                            spState.multiplier = 1;
++                            e.dead=true;
++                            createExplosion(e.x, e.y, '#ff4757', 18);
++                            setGameMessage('HULL BREACH!', 55);
++                         } else if(e.type==='pickup') {
++                            applyPickup();
++                            e.dead = true;
++                            createExplosion(e.x, e.y, '#FFD700', 20);
++                         } else {
++                            spState.combo++;
++                            spState.multiplier = Math.min(5, 1 + Math.floor(spState.combo / 4));
++                            spState.score += 50 * spState.multiplier;
++                            e.dead=true;
++                            createExplosion(e.x, e.y, '#00ffaa', 16);
++                         }
+                     }
+                     if(e.type==='target' && !e.dead) {
+                         spState.entities.forEach(b => {
+-                            if(b.type==='bullet' && !b.dead && rectCol(b,e)) { spState.score+=100; e.dead=true; b.dead=true; createExplosion(e.x, e.y, '#FFD700'); }
++                            if(b.type==='bullet' && !b.dead && rectCol(b,e)) {
++                                spState.combo++;
++                                spState.multiplier = Math.min(5, 1 + Math.floor(spState.combo / 4));
++                                spState.score += 100 * spState.multiplier;
++                                e.dead=true;
++                                b.dead=true;
++                                createExplosion(e.x, e.y, '#FFD700', 22);
++                                if(spState.combo > 0 && spState.combo % 6 === 0) setGameMessage(`COMBO x${spState.multiplier}`, 45);
++                            }
+                         });
+                     }
+-                    if(e.y>500 || e.x<-50) { e.dead=true; if(g.type==='dodger') spState.score+=10; }
++                    if(e.y>500 || e.x<-50 || e.x>840) {
++                        e.dead=true;
++                        if(g.type==='dodger' && e.type==='bad') spState.score += 10 * spState.multiplier;
++                    }
+                 }
+                 spState.entities = spState.entities.filter(e => !e.dead);
++
++                if(spState.frame % 600 === 0) {
++                    spState.wave++;
++                    setGameMessage(`WAVE ${spState.wave}`, 70);
++                }
++
++                drawGameHud(ctx);
+                 document.getElementById('goScore').innerText = spState.score;
+                 document.getElementById('goHp').innerText = spState.hp;
++                document.getElementById('goWave').innerText = spState.wave;
++                document.getElementById('goMultiplier').innerText = spState.multiplier;
+                 if(spState.hp<=0) stopGame(true);
+             }, 1000/60);
+         }
+         function rectCol(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
+         function stopGame(died) {
+             spState.active=false; clearInterval(spLoop); document.getElementById('gameOverlay').style.display='none';
++            window.onkeydown = null;
++            window.onkeyup = null;
+             user.coins += Math.floor(spState.score/5); saveUser(user); updateHUD();
+         }
+ 
+         // --- CLOUD MULTIPLAYER ---
+         function runMP() {
+             const cvs=document.getElementById('mpCanvas'); const ctx=cvs.getContext('2d'); cvs.focus();
+             const badge = document.getElementById('mpStatusBadge');
+             
+             if(dbMode === 'local') {
+                 badge.innerText = "Offline Mode"; badge.className = "status-badge status-offline";
+             } else {
+                 badge.innerText = "Online (Cloud)"; badge.className = "status-badge status-online";
+                 
+                 mpListener = db.collection('mp_active').onSnapshot(s => {
+                     otherPlayers = {};
+                     const now = Date.now();
+                     s.forEach(doc => {
+                         const d = doc.data();
+                         if(d.username !== user.username && (now - d.lastSeen) < 10000) {
+                             otherPlayers[d.username] = d;
+                         }
+                     });
+                 });
+ 
+                 try {
